@@ -10,11 +10,6 @@ add_executable(Game src/main.cpp)
 # link SFML libs
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 target_link_libraries(Game PRIVATE sfml-graphics sfml-window sfml-system)
+target_include_directories(Game PRIVATE "/opt/homebrew/Cellar/sfml/2.6.2/include")
 
-# copy runtime assets to binary output directory
-add_custom_command(
-    TARGET Game POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/bin
-        $<TARGET_FILE_DIR:Game>
-)
+# at some point, may want to go modular route: CMakeLists.txt file here, one is src, then one in each directory in source (audio, graphics, etc.) like Step 2 of the CMake tutorial

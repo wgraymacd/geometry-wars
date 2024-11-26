@@ -24,9 +24,8 @@ in order to store an arbitrary number of shapes from the config file, must store
 
 create custom class or struct which stores all the properties of a shape that are not stored within the sf::Shape class itself (like velocity, name, etc.)
 
-use shape.getLocalBounds() on sf::Shape objects to see if shape touches side of screen
-- gives local pos (relative to shape.getPosition(), not the window) of the top left of the rectangle and the width and height of the rectangle 
+use shape.getBlobalBounds() on sf::Shape objects to see if shape touches side of screen
 - takes into account any scale, translation, etc. that has been applied to the shape  
 
-also use text.getLocalBounds() for sf::Text objects
+also use text.getLocalBounds() for sf::Text objects to see sizes
 
