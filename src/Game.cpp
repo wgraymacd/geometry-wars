@@ -1,6 +1,8 @@
 #include "Game.h"
 
 #include <iostream>
+#include <fstream>
+#include <random>
 
 Game::Game(const std::string& config)
 {
@@ -11,19 +13,102 @@ void Game::init(const std::string& path)
 {
     // read in the config file
     // use the structs in Game.h
-
-    // create window
-    m_window.create(sf::VideoMode(1280, 720), "A2"); // read window values in from config later
-    m_window.setFramerateLimit(60);
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file: " << path << std::endl;
+        exit(-1);
+    }
+    std::string type;
+    while (file >> type)
+    {
+        // create window
+        if (type == "Window") 
+        { 
+            int w, h, fps, fs;
+            file >> w >> h >> fps >> fs;
+            if (fs)
+            {
+                m_window.create(sf::VideoMode::getDesktopMode(), "A2", sf::Style::Fullscreen);
+            }
+            else
+            {
+                m_window.create(sf::VideoMode(w, h), "A2");
+            }
+            m_window.setFramerateLimit(fps);
+        }
+        // handle font and text setup
+        else if (type == "Font")
+        {
+            std::string path;
+            int size, r, g, b;
+            file >> path >> size >> r >> g >> b;
+            if (!m_font.loadFromFile(path))
+            {
+                std::cerr << "Could not load font: " << path << std::endl;
+            }
+            m_text.setFont(m_font);
+            m_text.setCharacterSize(size);
+            m_text.setFillColor(sf::Color(r, g, b));
+        }
+        // load entity data into config structs
+        else if (type == "Player")
+        {
+            file >> m_playerConfig.SR >> m_playerConfig.CR >> m_playerConfig.S >> m_playerConfig.FR >> m_playerConfig.FG >> m_playerConfig.FB >> m_playerConfig.OR >> m_playerConfig.OG >> m_playerConfig.OB >> m_playerConfig.OT >> m_playerConfig.V;
+        }
+        else if (type == "Enemy")
+        {
+            file >> m_enemyConfig.SR >> m_enemyConfig.CR >> m_enemyConfig.SMIN >> m_enemyConfig.SMAX >> m_enemyConfig.OR >> m_enemyConfig.OG >> m_enemyConfig.OB >> m_enemyConfig.OT >> m_enemyConfig.VMIN >> m_enemyConfig.VMAX >> m_enemyConfig.L >> m_enemyConfig.SI;
+        }
+        else if (type == "Bullet")
+        {
+            file >> m_bulletConfig.SR >> m_bulletConfig.CR >> m_bulletConfig.S >> m_bulletConfig.FR >> m_bulletConfig.FG >> m_bulletConfig.FB >> m_bulletConfig.OR >> m_bulletConfig.OG >> m_bulletConfig.OB >> m_bulletConfig.OT >> m_bulletConfig.V >> m_bulletConfig.L;
+        }
+        else
+        {
+            std::cerr << "Unknown type in config.txt: " << type << std::endl;
+            exit(-1);
+        }
+    }
+    file.close();
 
     // spawn player
     spawnPlayer();
 }
 
-std::shared_ptr<Entity> Game::player() // helper func to get player from entity manager
+// helper for player retrieval from entity manager
+std::shared_ptr<Entity> Game::player()
 {
     auto& players = m_entityManager.getEntities("player");
     return players.front();
+}
+
+// helper for random number generation
+// use rand() instead if generating tons of random numbers, change #includes
+int getRandInt(int min, int max)
+{
+    // create a random device and seed the generator
+    static std::random_device rd; 
+    static std::mt19937 generator(rd());
+    
+    // define the range
+    std::uniform_int_distribution<int> distribution(min, max);
+
+    // generate the number
+    return distribution(generator);
+}
+
+float getRandFloat(float min, float max)
+{
+    // create a random device and seed the generator
+    static std::random_device rd; 
+    static std::mt19937 generator(rd());
+    
+    // define the range
+    std::uniform_real_distribution<float> distribution(min, max);
+
+    // generate the number
+    return distribution(generator);
 }
 
 void Game::run()
@@ -51,39 +136,31 @@ void Game::setPaused(bool paused)
     // pause functionality
 }
 
-// respawn the player in the middle fo the screen
+// respawn the player in the middle of the screen
 void Game::spawnPlayer()
 {
-    // finish adding all properties for the player with the correct values from the config file
-    // this stuff is hardcoded example
-
     // create every entity by calling EntityManager.addEntity(tag)
     // this returns a std::shared_ptr<Entity> so we use auto to save typing
     std::shared_ptr<Entity> entity = m_entityManager.addEntity("player");
 
-    // give this entity a transform so it spawns at (200, 200) with velocity (1, 1) and angle 0
-    entity->add<CTransform>(Vec2f(200.0f, 200.0f), Vec2f(1.0f, 1.0f), 0.0f);
+    entity->add<CShape>(m_playerConfig.SR, m_playerConfig.V, sf::Color(m_playerConfig.FR, m_playerConfig.FG, m_playerConfig.FB), sf::Color(m_playerConfig.OR, m_playerConfig.OG, m_playerConfig.OB), m_playerConfig.OT);
 
-    // the entity's shape will have radius 32, 8 sides, dark grey fill, and red outline of thickness 4
-    entity->add<CShape>(32.0f, 8, sf::Color(10, 10, 10), sf::Color(255, 0, 0), 4.0f);
+    entity->add<CTransform>(Vec2f(m_window.getSize().x / 2, m_window.getSize().y / 2), Vec2f(0.0f, 0.0f), 0.0f);
 
-    // add an input component to the player so we can use inputs
     entity->add<CInput>();
 }
 
 // spawn an enemy at a random position
 void Game::spawnEnemy()
 {
-    // make sure enemy spawned properly with the m_enemyConfig variables, must be spawned within bounds of screen
-
     std::shared_ptr<Entity> entity = m_entityManager.addEntity("enemy");
 
-    entity->add<CTransform>(Vec2f(400.0f, 200.0f), Vec2f(-1.0f, 1.0f), 0.0f);
-    entity->add<CShape>(32.0f, 5, sf::Color(10, 10, 10), sf::Color(255, 255, 0), 4.0f);
+    entity->add<CShape>(m_enemyConfig.SR, getRandInt(m_enemyConfig.VMIN, m_enemyConfig.VMAX), sf::Color(getRandInt(0, 255), getRandInt(0, 255), getRandInt(0, 255)), sf::Color(m_enemyConfig.OR, m_enemyConfig.OG, m_enemyConfig.OB), m_enemyConfig.OT);
+
+    float angle = getRandFloat(0, 2 * M_PI);
+    entity->add<CTransform>(Vec2f(getRandInt(m_enemyConfig.CR, m_window.getSize().x - m_enemyConfig.CR), getRandInt(m_enemyConfig.CR, m_window.getSize().y - m_enemyConfig.CR)), Vec2f(cosf(angle), sinf(angle)) * getRandInt(m_enemyConfig.SMIN, m_enemyConfig.SMAX), 0.0f);
 
     m_lastEnemySpawnTime = m_currentFrame;
-
-    std::cout << "enemy created\n";
 }
 
 // spawns the small enemies when a big one (input entity e) explodes
@@ -167,10 +244,8 @@ void Game::sCollision()
 
 void Game::sEnemySpawner()
 {
-    std::cout << m_currentFrame << " and " << m_lastEnemySpawnTime << "\n";
-    if (m_currentFrame >= m_lastEnemySpawnTime + 60)
+    if (m_currentFrame >= m_lastEnemySpawnTime + m_enemyConfig.SI)
     {
-        std::cout << "spawning enemy\n";
         spawnEnemy();
     }
 }

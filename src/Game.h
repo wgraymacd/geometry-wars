@@ -10,7 +10,7 @@ struct PlayerConfig
 };
 struct EnemyConfig 
 {
-    int SR, CR, OR, OG, OB, VMIN, VMAX, L, SI;
+    int SR, CR, OR, OG, OB, OT, VMIN, VMAX, L, SI;
     float SMIN, SMAX;
 };
 struct BulletConfig 
@@ -26,8 +26,8 @@ class Game
     sf::Font m_font;
     sf::Text m_text;
     PlayerConfig m_playerConfig;
-    EnemyConfig m_EnemyConfig;
-    BulletConfig m_BulletConfig;
+    EnemyConfig m_enemyConfig;
+    BulletConfig m_bulletConfig;
     sf::Clock m_deltaClock;
     int m_score = 0;
     int m_currentFrame = 0;

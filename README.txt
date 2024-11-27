@@ -47,7 +47,7 @@ shoots bullet towards pointer when mouse button clicked
 enemies:
 --------
 
-spawn in random loc every x frames (defines in config file)
+spawn in random loc every x frames (defined in config file)
 must not overlap sides of screen when spawning 
 random num of vertices between min and max specified in config
 random speed when spawning between min and max specified in config 
@@ -83,7 +83,7 @@ Font F S R G B
 
 Player SR CR S FR FG FB OR OG OB OT V | shape rad, collision rad, speed, fill color (x3), outline color (x3), outline thickness, num vertices | int, int, float, then all ints
 
-Enemy SR CR SMIN SMAX OR OG OB VMIN VMAX L SI | shape rad, collision rad, min and max speed, outline color (x3), outline thickness, min and max vertices, small lifespan, spawn interval | int, int, float (x2), then all ints
+Enemy SR CR SMIN SMAX OR OG OB OT VMIN VMAX L SI | shape rad, collision rad, min and max speed, outline color (x3), outline thickness, min and max vertices, small lifespan, spawn interval | int, int, float (x2), then all ints
 
 Bullet SR CR S FR FG FB OR OG OB OT V L | shape rad, collision rad, speed, fill color (x3), outline color (x3), outline thickness, num vertices, lifespan | int, int, float, then all ints
 
