@@ -19,7 +19,7 @@ public:
     { }
 
     // constructor to convert from sf::Vector2
-    Vec2(cosnt sf::Vector2<T>& vec)
+    Vec2(const sf::Vector2<T>& vec)
         : x(vec.x), y(vec.y)
     { }
 
@@ -33,57 +33,61 @@ public:
     // use of const: const Vec2& rhs ensures that the original object rhs is not modified and const at the end guarantees that this func does not modify the object it is called on
     Vec2 operator + (const Vec2& rhs) const
     {
-
+        return Vec2(x + rhs.x, y + rhs.y);
     }
 
     Vec2 operator - (const Vec2& rhs) const
     {
-
+        return Vec2(x - rhs.x, y - rhs.y);
     }
 
     Vec2 operator / (const T val) const
     {
-
+        return Vec2(x / val, y / val);
     }
 
     Vec2 operator * (const T val) const
     {
-
+        return Vec2(x * val, y * val);
     }
 
-    Vec2 operator += (const Vec2& rhs)
+    void operator += (const Vec2& rhs)
     {
-
+        x += rhs.x;
+        y += rhs.y;
     }
 
-    Vec2 operator -= (const Vec2& rhs)
+    void operator -= (const Vec2& rhs)
     {
-
+        x -= rhs.x;
+        y -= rhs.y;
     }
 
-    Vec2 operator /= (const T val)
+    void operator /= (const T val)
     {
-
+        x /= val;
+        y /= val;
     }
 
-    Vec2 operator *= (const T val)
+    void operator *= (const T val)
     {
-
+        x *= val;
+        y *= val;
     }
 
-    Vec2 operator == (const Vec2& rhs) const
+    bool operator == (const Vec2& rhs) const
     {
-
+        return (x == rhs.x) && (y == rhs.y);
     }
 
-    Vec2 operator != (const Vec2& rhs) const
+    bool operator != (const Vec2& rhs) const
     {
-
+        return (x != rhs.x) && (y != rhs.y);
     }
 
-    float dist(const Vec2& rhs) const
+    float dist(const Vec2& vec) const
     {
-
+        return sqrtf(abs(x - vec.x) * abs(x - vec.x) + abs(y - vec.y) * abs(y - vec.y));
     }
 };
 

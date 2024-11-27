@@ -12,23 +12,26 @@ void Game::init(const std::string& path)
     // read in the config file
     // use the structs in Game.h
 
+    // create window
+    m_window.create(sf::VideoMode(1280, 720), "A2"); // read window values in from config later
+    m_window.setFramerateLimit(60);
+
+    // spawn player
     spawnPlayer();
 }
 
-std::shared_ptr<Entity> Game::player()
+std::shared_ptr<Entity> Game::player() // helper func to get player from entity manager
 {
-    auto& players = m_entities.getEntities("player");
+    auto& players = m_entityManager.getEntities("player");
     return players.front();
 }
 
 void Game::run()
 {
-    // add pause functionality
-    
     while (m_running)
     {
         // update entity manager
-        m_entities.update();
+        m_entityManager.update();
 
         sEnemySpawner();
         sMovement();
@@ -43,15 +46,20 @@ void Game::run()
     }
 }
 
+void Game::setPaused(bool paused)
+{
+    // pause functionality
+}
+
 // respawn the player in the middle fo the screen
 void Game::spawnPlayer()
 {
-    // finish adding all properties for he player with the correct values from the config file
+    // finish adding all properties for the player with the correct values from the config file
     // this stuff is hardcoded example
 
     // create every entity by calling EntityManager.addEntity(tag)
     // this returns a std::shared_ptr<Entity> so we use auto to save typing
-    auto entity = m_entities.addEntity("player");
+    std::shared_ptr<Entity> entity = m_entityManager.addEntity("player");
 
     // give this entity a transform so it spawns at (200, 200) with velocity (1, 1) and angle 0
     entity->add<CTransform>(Vec2f(200.0f, 200.0f), Vec2f(1.0f, 1.0f), 0.0f);
@@ -68,8 +76,14 @@ void Game::spawnEnemy()
 {
     // make sure enemy spawned properly with the m_enemyConfig variables, must be spawned within bounds of screen
 
-    // record when the most recent enemy was spawned
+    std::shared_ptr<Entity> entity = m_entityManager.addEntity("enemy");
+
+    entity->add<CTransform>(Vec2f(400.0f, 200.0f), Vec2f(-1.0f, 1.0f), 0.0f);
+    entity->add<CShape>(32.0f, 5, sf::Color(10, 10, 10), sf::Color(255, 255, 0), 4.0f);
+
     m_lastEnemySpawnTime = m_currentFrame;
+
+    std::cout << "enemy created\n";
 }
 
 // spawns the small enemies when a big one (input entity e) explodes
@@ -94,10 +108,42 @@ void Game::sMovement()
     // implement all entity movement in this function
     // should read the m_player->CInput component to determine if the player is moving
 
-    // sample movement speed update
-    auto& transform = player()->get<CTransform>();
-    transform.pos.x += transform.velocity.x; // like this since I haven't implented Vec2 class yet, but would hust use operators
-    transform.pos.y += transform.velocity.y;
+    // player
+    CTransform& transform = player()->get<CTransform>();
+    transform.velocity = Vec2f(0.0f, 0.0f);
+    CInput& input = player()->get<CInput>();
+    if (input.left)
+    {
+        transform.velocity.x = -1.0f;
+    }
+    if (input.right)
+    {
+        transform.velocity.x = 1.0f;
+    }
+    if (input.up)
+    {
+        transform.velocity.y = -1.0f;
+    }
+    if (input.down)
+    {
+        transform.velocity.y = 1.0f;
+    }
+    transform.pos += transform.velocity;
+
+    // enemies
+    for (const std::shared_ptr<Entity>& enemy : m_entityManager.getEntities("enemy"))
+    {
+        CTransform& transform = enemy->get<CTransform>();
+        // if (enemy->get<CShape>().circle.getGlobalBounds().left <= ) // check for out of bounds shapes and flip velocities accordingly
+        transform.pos += transform.velocity;
+    }
+
+    // bullets
+    for (const std::shared_ptr<Entity>& bullet : m_entityManager.getEntities("bullet"))
+    {
+        CTransform& transform = bullet->get<CTransform>();
+        transform.pos += transform.velocity;
+    }
 }
 
 void Game::sLifespan()
@@ -121,7 +167,12 @@ void Game::sCollision()
 
 void Game::sEnemySpawner()
 {
-    // do this
+    std::cout << m_currentFrame << " and " << m_lastEnemySpawnTime << "\n";
+    if (m_currentFrame >= m_lastEnemySpawnTime + 60)
+    {
+        std::cout << "spawning enemy\n";
+        spawnEnemy();
+    }
 }
 
 void Game::sGUI()
@@ -131,23 +182,50 @@ void Game::sGUI()
 
 void Game::sRender()
 {
-    // change code below to draw all entities
-
-    // sample drawing of player entity we created
     m_window.clear();
 
-    // set the pos of the shape basedon the entity's transofrm->pos
+    // set the pos of the shape based on the entity's transform->pos
+    // player
     player()->get<CShape>().circle.setPosition(player()->get<CTransform>().pos);
+    // enemies
+    for (auto& enemy : m_entityManager.getEntities("enemy"))
+    {
+        enemy->get<CShape>().circle.setPosition(enemy->get<CTransform>().pos);
+    }
+    // bullets
+    for (auto& bullet : m_entityManager.getEntities("bullet"))
+    {
+        bullet->get<CShape>().circle.setPosition(bullet->get<CTransform>().pos);
+    }
 
-    // set the rotation of the shape based on the entity's transofrm->angle
+    // set the rotation of the shape based on the entity's transform->angle
+    // player 
     player()->get<CTransform>().angle += 1.0f;
     player()->get<CShape>().circle.setRotation(player()->get<CTransform>().angle);
+    // enemies
+    for (auto& enemy : m_entityManager.getEntities("enemy"))
+    {
+        enemy->get<CTransform>().angle += 1.0f;
+        enemy->get<CShape>().circle.setRotation(enemy->get<CTransform>().angle);
+    }
 
     // draw entity's sf::CircleShape
+    // player
     m_window.draw(player()->get<CShape>().circle);
+    // enemies
+    for (auto& enemy : m_entityManager.getEntities("enemy"))
+    {
+        m_window.draw(enemy->get<CShape>().circle);
+    }
+    // bullets
+    for (auto& bullet : m_entityManager.getEntities("bullet"))
+    {
+        m_window.draw(bullet->get<CShape>().circle);
+    }
 
     // draw the ui last if I implement any
 
+    // display everything drawn
     m_window.display();
 }
 
@@ -172,7 +250,19 @@ void Game::sUserInput()
             {
             case sf::Keyboard::W:
                 std::cout << "w pressed\n";
-                // set player's input component "up" to true
+                player()->get<CInput>().up = true; // I think better to keep calling player() on each case since will click this less than 60 times per second, so making variable called input in this function would be more taxing
+                break;
+            case sf::Keyboard::A:
+                std::cout << "a pressed\n";
+                player()->get<CInput>().left = true;
+                break;
+            case sf::Keyboard::S:
+                std::cout << "s pressed\n";
+                player()->get<CInput>().down = true;
+                break;
+            case sf::Keyboard::D:
+                std::cout << "d pressed\n";
+                player()->get<CInput>().right = true;
                 break;
             default:
                 break;
@@ -185,7 +275,19 @@ void Game::sUserInput()
             {
             case sf::Keyboard::W:
                 std::cout << "w released\n";
-                // set player's input component "up" to false
+                player()->get<CInput>().up = false;
+                break;
+            case sf::Keyboard::A:
+                std::cout << "a pressed\n";
+                player()->get<CInput>().left = false;
+                break;
+            case sf::Keyboard::S:
+                std::cout << "s pressed\n";
+                player()->get<CInput>().down = false;
+                break;
+            case sf::Keyboard::D:
+                std::cout << "d pressed\n";
+                player()->get<CInput>().right = false;
                 break;
             default:
                 break;

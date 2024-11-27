@@ -22,7 +22,7 @@ struct BulletConfig
 class Game
 {
     sf::RenderWindow m_window;
-    EntityManager m_entities;
+    EntityManager m_entityManager;
     sf::Font m_font;
     sf::Text m_text;
     PlayerConfig m_playerConfig;

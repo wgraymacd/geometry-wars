@@ -5,7 +5,7 @@ project(Game)
 set(CMAKE_CXX_STANDARD 17)
 
 # executable
-add_executable(Game src/main.cpp)
+add_executable(Game src/main.cpp src/Game.cpp)
 
 # link SFML libs
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
