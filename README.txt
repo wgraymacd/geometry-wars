@@ -11,7 +11,7 @@ This repo is a recreation of Geometry Wars, a small project I took on to learn s
 
 Acknowledgements:
 -----------------
-I referrenced skeleton code for this project from a course assignment written by Dave Churchill (https://www.youtube.com/@DaveChurchill), whose course I am currently following (being offered Fall 2024).
+I referrenced skeleton code for this project from a course assignment written by Dave Churchill (https://www.youtube.com/@DaveChurchill) in Fall 2024.
 
 Project Info:
 -------------
