@@ -35,7 +35,7 @@ public:
         return m_active;
     }
 
-    void destory()
+    void destroy()
     {
         m_active = false;
     }
@@ -51,7 +51,14 @@ public:
     }
 
     template <typename T>
-    bool has() const
+    bool has()
+    {
+        return get<T>().exists;
+    }
+
+    // const correctness
+    template <typename T>
+    const bool has() const
     {
         return get<T>().exists;
     }
@@ -67,6 +74,13 @@ public:
 
     template <typename T>
     T& get()
+    {
+        return std::get<T>(m_components);
+    }
+
+    // const correctness
+    template <typename T>
+    const T& get() const
     {
         return std::get<T>(m_components);
     }

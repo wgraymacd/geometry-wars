@@ -121,6 +121,7 @@ void Game::run()
         sEnemySpawner();
         sMovement();
         sCollision();
+        sLifespan();
         sUserInput();
         sGUI();
         sRender();
@@ -145,7 +146,7 @@ void Game::spawnPlayer()
 
     entity->add<CShape>(m_playerConfig.SR, m_playerConfig.V, sf::Color(m_playerConfig.FR, m_playerConfig.FG, m_playerConfig.FB), sf::Color(m_playerConfig.OR, m_playerConfig.OG, m_playerConfig.OB), m_playerConfig.OT);
 
-    entity->add<CTransform>(Vec2f(m_window.getSize().x / 2, m_window.getSize().y / 2), Vec2f(0.0f, 0.0f), 0.0f);
+    entity->add<CTransform>(Vec2f(m_window.getSize().x / 2, m_window.getSize().y / 2), Vec2f(0.0f, 0.0f), 0.0f); // velocity vector updated in sMovement()
 
     entity->add<CInput>();
 }
@@ -155,7 +156,7 @@ void Game::spawnEnemy()
 {
     std::shared_ptr<Entity> entity = m_entityManager.addEntity("enemy");
 
-    entity->add<CShape>(m_enemyConfig.SR, getRandInt(m_enemyConfig.VMIN, m_enemyConfig.VMAX), sf::Color(getRandInt(0, 255), getRandInt(0, 255), getRandInt(0, 255)), sf::Color(m_enemyConfig.OR, m_enemyConfig.OG, m_enemyConfig.OB), m_enemyConfig.OT);
+    entity->add<CShape>(m_enemyConfig.SR, getRandInt(m_enemyConfig.VMIN, m_enemyConfig.VMAX), sf::Color(getRandInt(0, 255), getRandInt(0, 255), getRandInt(0, 255)), sf::Color(m_enemyConfig.OR, m_enemyConfig.OG, m_enemyConfig.OB, 1), m_enemyConfig.OT);
 
     float angle = getRandFloat(0, 2 * M_PI);
     entity->add<CTransform>(Vec2f(getRandInt(m_enemyConfig.CR, m_window.getSize().x - m_enemyConfig.CR), getRandInt(m_enemyConfig.CR, m_window.getSize().y - m_enemyConfig.CR)), Vec2f(cosf(angle), sinf(angle)) * getRandInt(m_enemyConfig.SMIN, m_enemyConfig.SMAX), 0.0f);
@@ -166,18 +167,44 @@ void Game::spawnEnemy()
 // spawns the small enemies when a big one (input entity e) explodes
 void Game::spawnSmallEnemies(std::shared_ptr<Entity> e)
 {
-    // spawn small enemies at the location of the input enemy e
+    // // get number of vertices of e
+    // int numVertices = e->get<CShape>().circle.getPointCount();
 
-    // when we create the smaller enemy, we have to read the values of the original enemy
-    // spawn a number of small ones equal to number of vertices of bigger one
-    // set each small enemy to same color as big one
-    // each small enemy worth double points
+    // // get the velocity vector of e and use it to find the angle associated with it
+    // const Vec2f& vel = e->get<CTransform>().velocity; // const reference so that (1) can't modify the og thing and (2) don't have to copy it
+    // float speed = sqrtf(vel.x * vel.x + vel.y * vel.y);
+    // float angle = asinf(vel.y / speed);
+
+    // // each small enemy will be evenly separated and propogate radially away from e
+    // float separation = 2 * M_PI / numVertices;
+
+    // // create the small enemies
+    // for (int _ = 0; _ < numVertices; _++)
+    // {
+    //     std::shared_ptr<Entity> entity = m_entityManager.addEntity("smallEnemy");
+
+    //     entity->add<CShape>(m_enemyConfig.SR / 2, numVertices, e->get<CShape>().circle.getFillColor(), sf::Color(m_enemyConfig.OR, m_enemyConfig.OG, m_enemyConfig.OB, 1), m_enemyConfig.OT);
+
+    //     entity->add<CTransform>(e->get<CTransform>().pos, Vec2f(cosf(angle), sinf(angle)) * speed, 0.0f);
+
+    //     // entity->add<CLifespan>(90);
+
+    //     angle += separation;
+    // }
 }
 
 // spawns a bullet from a given entity to a target location
-void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2f& target)
+void Game::spawnBullet(std::shared_ptr<Entity> e, const Vec2f& target)
 {
-    // bullet speed is given as a scalar
+    std::shared_ptr<Entity> entity = m_entityManager.addEntity("bullet");
+
+    entity->add<CShape>(m_bulletConfig.SR, m_bulletConfig.V, sf::Color(m_bulletConfig.FR, m_bulletConfig.FG, m_bulletConfig.FB), sf::Color(m_bulletConfig.OR, m_bulletConfig.OG, m_bulletConfig.OB), m_bulletConfig.OT);
+
+    Vec2f direction = target - e->get<CTransform>().pos;
+    float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
+    entity->add<CTransform>(e->get<CTransform>().pos, direction / length * m_bulletConfig.S, 0.0f);
+
+    entity->add<CLifespan>(m_bulletConfig.L);
 }
 
 void Game::sMovement()
@@ -187,31 +214,49 @@ void Game::sMovement()
 
     // player
     CTransform& transform = player()->get<CTransform>();
-    transform.velocity = Vec2f(0.0f, 0.0f);
+    transform.velocity.x = 0;
+    transform.velocity.y = 0;
+
     CInput& input = player()->get<CInput>();
-    if (input.left)
+    
+    if (input.left && transform.pos.x > m_playerConfig.CR)
     {
-        transform.velocity.x = -1.0f;
+        transform.velocity.x -= 1.0f;
     }
-    if (input.right)
+    if (input.right && m_window.getSize().x - transform.pos.x > m_playerConfig.CR)
     {
-        transform.velocity.x = 1.0f;
+        transform.velocity.x += 1.0f;
     }
-    if (input.up)
+    if (input.up && transform.pos.y > m_playerConfig.CR)
     {
-        transform.velocity.y = -1.0f;
+        transform.velocity.y -= 1.0f;
     }
-    if (input.down)
+    if (input.down && m_window.getSize().y - transform.pos.y > m_playerConfig.CR)
     {
-        transform.velocity.y = 1.0f;
+        transform.velocity.y += 1.0f;
     }
-    transform.pos += transform.velocity;
+
+    if (abs(transform.velocity.x) == 1.0f && abs(transform.velocity.y) == 1.0f)
+    {
+        transform.velocity /= sqrtf(2.0f);
+    }
+
+    transform.pos += transform.velocity * m_playerConfig.S;
 
     // enemies
     for (const std::shared_ptr<Entity>& enemy : m_entityManager.getEntities("enemy"))
     {
         CTransform& transform = enemy->get<CTransform>();
-        // if (enemy->get<CShape>().circle.getGlobalBounds().left <= ) // check for out of bounds shapes and flip velocities accordingly
+
+        if (transform.pos.x <= m_enemyConfig.CR || m_window.getSize().x - transform.pos.x <= m_enemyConfig.CR)
+        {
+            transform.velocity.x *= -1.0f;
+        }
+        if (transform.pos.y <= m_enemyConfig.CR || m_window.getSize().y - transform.pos.y <= m_enemyConfig.CR)
+        {
+            transform.velocity.y *= -1.0f;
+        }
+
         transform.pos += transform.velocity;
     }
 
@@ -225,21 +270,72 @@ void Game::sMovement()
 
 void Game::sLifespan()
 {
-    // for all entities
-    //     if entity has no lifespan component, skip it
-    //     if entity has > 0 remaining lifespan, subtract 1
-    //     if it has lifespan and it alive
-    //         scale alpha channel
-    //     if it has lifespan and its time is up
-    //         destroy entity
+    for (auto& [tag, entityVec] : m_entityManager.getEntityMap())
+    {
+        // check if this type of entity has a lifespan (assuming all entities of a certain type either do or don't)
+        if (entityVec.size() != 0)
+        {
+            if (entityVec.front()->has<CLifespan>())
+            {
+                for (auto& e : entityVec)
+                {
+                    if (e->get<CLifespan>().remaining > 0)
+                    {
+                        e->get<CLifespan>().remaining -= 1;
+
+                        sf::CircleShape& shape = e->get<CShape>().circle;
+                        sf::Color color = shape.getFillColor();
+                        color.a = static_cast<sf::Uint8>(static_cast<float>(e->get<CLifespan>().remaining) / static_cast<float>(e->get<CLifespan>().lifespan) * 255.0f);
+
+                        e->get<CShape>().circle.setFillColor(color);
+                        e->get<CShape>().circle.setOutlineColor(color);
+                    }
+                    else
+                    {
+                        e->destroy();
+                    }
+                }
+            }
+        }
+    }
 }
 
 void Game::sCollision()
 {
-    // implement all proper collision bwteen entities
     // use collision radius, not shape radius
 
-    // nested for loops with bullets and enemies
+    // nested for loops with bullets, enemies, player, small enemies (not all can collide with each other)
+
+    auto& map = m_entityManager.getEntityMap();
+    Vec2f& pPos = player()->get<CTransform>().pos;
+
+    // player and enemies
+    for (auto& enemy : map.at("enemy"))
+    {
+        if (pPos.dist(enemy->get<CTransform>().pos) <= m_playerConfig.CR + m_enemyConfig.CR)
+        {
+            spawnSmallEnemies(enemy);
+            enemy->destroy();
+
+            player()->destroy();
+            spawnPlayer();
+        }
+    }
+
+    // bullets and enemies
+    for (auto& enemy : map.at("enemy"))
+    {
+        for (auto& bullet : map.at("bullet"))
+        {
+            if (enemy->get<CTransform>().pos.dist(bullet->get<CTransform>().pos) <= m_enemyConfig.CR + m_bulletConfig.CR)
+            {
+                spawnSmallEnemies(enemy);
+                enemy->destroy();
+
+                bullet->destroy();
+            }
+        }
+    }
 }
 
 void Game::sEnemySpawner()
@@ -275,13 +371,13 @@ void Game::sRender()
 
     // set the rotation of the shape based on the entity's transform->angle
     // player 
-    player()->get<CTransform>().angle += 1.0f;
-    player()->get<CShape>().circle.setRotation(player()->get<CTransform>().angle);
+    player()->get<CTransform>().rotAngle += 1.0f;
+    player()->get<CShape>().circle.setRotation(player()->get<CTransform>().rotAngle);
     // enemies
     for (auto& enemy : m_entityManager.getEntities("enemy"))
     {
-        enemy->get<CTransform>().angle += 1.0f;
-        enemy->get<CShape>().circle.setRotation(enemy->get<CTransform>().angle);
+        enemy->get<CTransform>().rotAngle += 1.0f;
+        enemy->get<CShape>().circle.setRotation(enemy->get<CTransform>().rotAngle);
     }
 
     // draw entity's sf::CircleShape
@@ -339,6 +435,10 @@ void Game::sUserInput()
                 std::cout << "d pressed\n";
                 player()->get<CInput>().right = true;
                 break;
+            case sf::Keyboard::Escape:
+                std::cout << "esc pressed\n";
+                m_running = false;
+                break;
             default:
                 break;
             }
@@ -353,15 +453,15 @@ void Game::sUserInput()
                 player()->get<CInput>().up = false;
                 break;
             case sf::Keyboard::A:
-                std::cout << "a pressed\n";
+                std::cout << "a released\n";
                 player()->get<CInput>().left = false;
                 break;
             case sf::Keyboard::S:
-                std::cout << "s pressed\n";
+                std::cout << "s released\n";
                 player()->get<CInput>().down = false;
                 break;
             case sf::Keyboard::D:
-                std::cout << "d pressed\n";
+                std::cout << "d released\n";
                 player()->get<CInput>().right = false;
                 break;
             default:
@@ -374,8 +474,7 @@ void Game::sUserInput()
             if (event.mouseButton.button == sf::Mouse::Left)
             {
                 std::cout << "lmb clicked at (" << event.mouseButton.x << ", " << event.mouseButton.y << ")\n";
-                
-                // call spawn bullet
+                spawnBullet(player(), Vec2f(event.mouseButton.x, event.mouseButton.y));
             }
         }
     }

@@ -14,11 +14,11 @@ class CTransform : public Component
 public:
     Vec2f pos = { 0.0, 0.0 };
     Vec2f velocity = { 0.0, 0.0 };
-    float angle = 0;
+    float rotAngle = 0;
 
     CTransform() = default;
     CTransform(const Vec2f& p, const Vec2f& v, float a)
-        : pos(p), velocity(v), angle(a) { }
+        : pos(p), velocity(v), rotAngle(a) { }
 };
 
 class CShape : public Component

@@ -13,9 +13,15 @@ class EntityManager
     std::map<std::string, EntityVec> m_entityMap;
     size_t m_totalEntities = 0;
 
-    void removeDeadEntities(EntityVec& vec)
+    void removeDeadEntities(EntityVec &vec)
     {
-        // remove all entities from the input vector, this func is called by update function
+        vec.erase(
+            std::remove_if(vec.begin(), vec.end(),
+                           [](const std::shared_ptr<Entity> &e)
+                           {
+                                return !e->m_active;
+                           }),
+            vec.end());
     }
 
 public:
@@ -42,20 +48,20 @@ public:
             removeDeadEntities(entityVec);
         }
 
-        std::cout << "\nin update call, num of entites: " << m_entities.size() << "\n";
-        for (int i = 0; i < m_entities.size(); i++)
-        {
-            std::cout << "entity manager updated: " << m_entities[i]->tag() << "\n";
-        }
-        std::cout << "\nentity map:\n";
-        for (auto& [tag, entityVec] : m_entityMap)
-        {
-            std::cout << tag << "\n";
-            for (auto& e : entityVec)
-            {
-                std::cout << "    " << e->id() << "\n";
-            }
-        }
+        // std::cout << "\nin update call, num of entites: " << m_entities.size() << "\n";
+        // for (int i = 0; i < m_entities.size(); i++)
+        // {
+        //     std::cout << "entity manager updated: " << m_entities[i]->tag() << "\n";
+        // }
+        // std::cout << "\nentity map:\n";
+        // for (auto& [tag, entityVec] : m_entityMap)
+        // {
+        //     std::cout << tag << "\n";
+        //     for (auto& e : entityVec)
+        //     {
+        //         std::cout << "    " << e->id() << "\n";
+        //     }
+        // }
     }
 
     std::shared_ptr<Entity> addEntity(const std::string& tag)
@@ -65,11 +71,6 @@ public:
 
         // add it to the vec of all entities 
         m_entitiesToAdd.push_back(entity);
-
-        for (auto& e : m_entitiesToAdd)
-        {
-            std::cout << e->tag() << " " << e->id() << "\n";
-        }
 
         // add it to the entity map
         if (m_entityMap.find(tag) == m_entityMap.end())
